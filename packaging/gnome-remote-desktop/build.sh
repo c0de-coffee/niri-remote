@@ -6,7 +6,7 @@
 # The build dependencies must be installed (MAKEPKG_FLAGS=-s lets makepkg install them with sudo).
 #
 # Uses Arch's official packaging (pinned below), which builds the signed upstream tag. Our package
-# gets pkgrel N.2, so it replaces Arch's N, and an Arch update to N+1 replaces ours again (check
+# gets pkgrel N.3, so it replaces Arch's N, and an Arch update to N+1 replaces ours again (check
 # whether the patches are still needed then). The keys that sign the upstream tag go into a
 # GnuPG home inside WORKDIR, not your own keyring.
 set -euo pipefail
@@ -33,7 +33,7 @@ python3 - <<EOF
 import glob, os, re
 patches = sorted(p for p in glob.glob("*.patch") if p != "0001-Lock-user-account.patch")
 s = open("PKGBUILD").read()
-s = re.sub(r"^pkgrel=(\d+)$", r"pkgrel=\1.2", s, count=1, flags=re.M)
+s = re.sub(r"^pkgrel=(\d+)$", r"pkgrel=\1.3", s, count=1, flags=re.M)
 s = s.replace("  0001-Lock-user-account.patch\n)",
               "  0001-Lock-user-account.patch\n" + "".join(f"  ours-{p}\n" for p in patches) + ")")
 s = s.replace("  git apply -3 ../0001-Lock-user-account.patch\n",

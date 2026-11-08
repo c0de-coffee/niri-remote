@@ -1,0 +1,123 @@
+From 0932dd7504ff60fedc6b0adb24f1ab5742418a64 Mon Sep 17 00:00:00 2001
+From: c0de-coffee <53132135+c0de-coffee@users.noreply.github.com>
+Date: Sun, 8 Nov 2026 21:53:19 +0900
+Subject: [PATCH] daemon-handover: Find the handover again after the system
+ daemon restarts
+
+When the system daemon restarts, the handover daemon asks the new one
+for its handover right away, often before it registered the existing
+sessions again, gets NoHandover and starts watching handover objects.
+That never recovered:
+
+- Its own object was usually added before the object manager loaded the
+  initial objects, so no object-added signal came for it.
+- on_handover_object_added() looked up the session of our own pid, which
+  fails for the handover daemon run as a systemd user service (it isn't
+  in a logind session).
+
+Ask the dispatcher again once the object manager is there and on every
+added object instead: it knows our session from our D-Bus connection.
+Ignore all but the first handover proxy, now that several requests can
+be in flight.
+---
+ src/grd-daemon-handover.c | 60 ++++++++++++++++++++++-----------------
+ 1 file changed, 34 insertions(+), 26 deletions(-)
+
+diff --git a/src/grd-daemon-handover.c b/src/grd-daemon-handover.c
+index 709f14b..e3f6ceb 100644
+--- a/src/grd-daemon-handover.c
++++ b/src/grd-daemon-handover.c
+@@ -564,35 +564,14 @@ on_rdp_server_stopped (GrdDaemonHandover *daemon_handover)
+ }
+ 
+ static void
+-on_handover_object_added (GDBusObjectManager *manager,
+-                          GDBusObject        *object,
+-                          GrdDaemonHandover  *daemon_handover)
++request_handover (GrdDaemonHandover *daemon_handover)
+ {
+-  g_autofree char *session_id = NULL;
+-  g_autofree char *expected_object_path = NULL;
+-  const char *object_path;
+-  GCancellable *cancellable;
+-
+-  session_id = grd_get_session_id_from_pid (getpid ());
+-  if (!session_id)
+-    {
+-      g_warning ("[DaemonHandover] Could not get session id");
+-      return;
+-    }
+-
+-  expected_object_path = g_strdup_printf ("%s/session%s",
+-                                          REMOTE_DESKTOP_HANDOVERS_OBJECT_PATH,
+-                                          session_id);
+-  object_path = g_dbus_object_get_object_path (object);
++  GCancellable *cancellable =
++    grd_daemon_get_cancellable (GRD_DAEMON (daemon_handover));
+ 
+-  if (g_strcmp0 (object_path, expected_object_path) != 0)
+-    {
+-      g_debug ("[DaemonHandover] Ignoring handover object at: %s, "
+-               "expected: %s", object_path, expected_object_path);
+-      return;
+-    }
++  if (!daemon_handover->remote_desktop_dispatcher)
++    return;
+ 
+-  cancellable = grd_daemon_get_cancellable (GRD_DAEMON (daemon_handover));
+   grd_dbus_remote_desktop_rdp_dispatcher_call_request_handover (
+     daemon_handover->remote_desktop_dispatcher,
+     cancellable,
+@@ -600,6 +579,23 @@ on_handover_object_added (GDBusObjectManager *manager,
+     daemon_handover);
+ }
+ 
++static void
++on_handover_object_added (GDBusObjectManager *manager,
++                          GDBusObject        *object,
++                          GrdDaemonHandover  *daemon_handover)
++{
++  /*
++   * The dispatcher knows which session we are in (from our D-Bus
++   * connection) and answers with our handover object, or with NoHandover
++   * if this one belongs to another session. Looking our session up
++   * ourselves doesn't work: as a systemd user service, this process isn't
++   * part of any logind session.
++   */
++  g_debug ("[DaemonHandover] Handover object added at: %s, requesting handover",
++           g_dbus_object_get_object_path (object));
++  request_handover (daemon_handover);
++}
++
+ static void
+ on_handover_object_manager_acquired (GObject      *source_object,
+                                      GAsyncResult *result,
+@@ -627,6 +623,14 @@ on_handover_object_manager_acquired (GObject      *source_object,
+ 
+   g_signal_connect (daemon_handover->handover_object_manager, "object-added",
+                     G_CALLBACK (on_handover_object_added), daemon_handover);
++
++  /*
++   * Our handover object may have been added between the dispatcher saying
++   * there is none and the object manager getting the initial objects (e.g.
++   * when the system daemon restarts and registers the existing sessions
++   * again): then no object-added signal comes for it, so ask once more.
++   */
++  request_handover (daemon_handover);
+ }
+ 
+ static void
+@@ -686,6 +690,10 @@ on_remote_desktop_rdp_handover_proxy_acquired (GObject      *object,
+ 
+   daemon_handover = GRD_DAEMON_HANDOVER (user_data);
+ 
++  /* Several handover requests can be in flight; the first one wins. */
++  if (daemon_handover->remote_desktop_handover)
++    return;
++
+   stop_watching_handover_objects (daemon_handover);
+ 
+   daemon_handover->remote_desktop_handover = g_steal_pointer (&proxy);
+-- 
+2.56.0
+
