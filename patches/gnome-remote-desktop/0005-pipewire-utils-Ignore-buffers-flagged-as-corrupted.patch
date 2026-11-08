@@ -1,0 +1,36 @@
+From 59fa8da90f72cf0128d14e68db924658bc2e563a Mon Sep 17 00:00:00 2001
+From: c0de-coffee <53132135+c0de-coffee@users.noreply.github.com>
+Date: Sun, 8 Nov 2026 21:05:15 +0900
+Subject: [PATCH] pipewire-utils: Ignore buffers flagged as corrupted
+
+KWin's screencast sends cursor-only buffers with SPA_CHUNK_FLAG_CORRUPTED
+and the old chunk size, not an empty chunk like mutter. Their contents are
+stale, so treating them as frames shows old pictures whenever the pointer
+moves.
+---
+ src/grd-pipewire-utils.c | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/src/grd-pipewire-utils.c b/src/grd-pipewire-utils.c
+index e7ebed6..0b55fef 100644
+--- a/src/grd-pipewire-utils.c
++++ b/src/grd-pipewire-utils.c
+@@ -157,7 +157,14 @@ grd_pipewire_buffer_has_pointer_bitmap (struct pw_buffer *buffer)
+ gboolean
+ grd_pipewire_buffer_has_frame_data (struct pw_buffer *buffer)
+ {
+-  return buffer->buffer->datas[0].chunk->size > 0;
++  struct spa_chunk *chunk = buffer->buffer->datas[0].chunk;
++
++  /*
++   * Mutter sends cursor-only buffers with an empty chunk. KWin keeps the
++   * chunk size and flags it as corrupted instead, which in PipeWire means
++   * "don't look at the contents".
++   */
++  return chunk->size > 0 && !(chunk->flags & SPA_CHUNK_FLAG_CORRUPTED);
+ }
+ 
+ gboolean
+-- 
+2.56.0
+

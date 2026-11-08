@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: c0de-coffee <53132135+c0de-coffee@users.noreply.github.com>
+Date: Sun, 8 Nov 2026 17:42:48 +0900
+Subject: [PATCH] hwaccel-vulkan: Only offer single-plane modifiers for
+ PipeWire streams
+
+PipeWire buffers with more than one plane are refused with "Unsupported
+dma-buf: Expected exactly 1 plane for format", and the session ends.
+But the modifiers offered for the stream include multi-plane ones, such
+as AMD's DCC modifiers. This goes unnoticed as long as the compositor
+picks a single-plane modifier; KWin picks the best one GBM allows, which
+on AMD is a DCC modifier with two planes.
+
+Only offer modifiers with one plane, like the check for BGRx support at
+startup already does.
+---
+ src/grd-hwaccel-vulkan.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/src/grd-hwaccel-vulkan.c b/src/grd-hwaccel-vulkan.c
+index 6f3384d..574630f 100644
+--- a/src/grd-hwaccel-vulkan.c
++++ b/src/grd-hwaccel-vulkan.c
+@@ -172,6 +172,8 @@ grd_hwaccel_vulkan_get_modifiers_for_format (GrdHwAccelVulkan     *hwaccel_vulka
+ {
+   VkPhysicalDevice vk_physical_device =
+     grd_vk_physical_device_get_physical_device (physical_device);
++  /* Buffers with more planes are refused when they arrive */
++  uint32_t required_n_planes = 1;
+   GArray *modifiers;
+   g_autoptr (GError) error = NULL;
+ 
+@@ -179,7 +181,8 @@ grd_hwaccel_vulkan_get_modifiers_for_format (GrdHwAccelVulkan     *hwaccel_vulka
+     get_egl_vulkan_format_modifier_intersection (hwaccel_vulkan,
+                                                  vk_physical_device,
+                                                  drm_format,
+-                                                 NULL, NULL, &error);
++                                                 &required_n_planes,
++                                                 NULL, &error);
+   if (!modifiers)
+     return FALSE;
+ 
+-- 
+2.56.0
+

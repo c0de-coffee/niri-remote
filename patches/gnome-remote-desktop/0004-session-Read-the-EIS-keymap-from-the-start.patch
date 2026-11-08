@@ -1,0 +1,35 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: c0de-coffee <53132135+c0de-coffee@users.noreply.github.com>
+Date: Sun, 8 Nov 2026 17:58:43 +0900
+Subject: [PATCH] session: Read the EIS keymap from the start
+
+The keymap fd may share its file offset with other clients. KWin sends
+the same keymap file to every EIS client, so once a client has read it,
+the next one reads from the end and gets nothing: grd fails with
+"Keyboard layout was empty" and drops the connection. With KWin this
+happens on every reconnection to a session, since grd connects to its
+EIS server again.
+
+Use pread() at offset 0.
+---
+ src/grd-session.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/src/grd-session.c b/src/grd-session.c
+index c2a8682..ab372aa 100644
+--- a/src/grd-session.c
++++ b/src/grd-session.c
+@@ -1278,7 +1278,9 @@ setup_xkb_keymap (GrdSession        *session,
+     {
+       int ret;
+ 
+-      ret = read (ei_keymap_get_fd (keymap), buf, keymap_size);
++      /* The fd may be shared with other clients, so its offset can be
++       * anywhere: always read from the start. */
++      ret = pread (ei_keymap_get_fd (keymap), buf, keymap_size, 0);
+       if (ret > 0)
+         {
+           break;
+-- 
+2.56.0
+
