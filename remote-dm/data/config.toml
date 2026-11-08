@@ -16,6 +16,9 @@
 #
 # With Noctalia Greeter instead of regreet:
 # command = "exec niri --headless --session -c /etc/remote-dm/greeter-noctalia.kdl"
+#
+# KDE (headless KWin, needs kwin-mutter-bridge):
+# command = "exec /usr/lib/remote-dm/kde-greeter"
 
 [session]
 # PAM service for user sessions (/etc/pam.d/remote-dm).
@@ -29,3 +32,7 @@
 # Runs in user sessions: a headless compositor and grd --handover. The session the greeter
 # picks is ignored, it's meant for local sessions.
 # command = "systemctl --user restart gnome-remote-desktop-handover.service; exec niri --headless --session"
+#
+# KDE Plasma (Plasma's KWin runs headless in remote-dm sessions, see
+# /usr/lib/systemd/user/plasma-kwin_wayland.service.d/remote-dm.conf):
+# command = "systemctl --user restart gnome-remote-desktop-handover.service; exec startplasma-wayland"

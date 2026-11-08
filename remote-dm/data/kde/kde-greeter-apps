@@ -1,0 +1,22 @@
+#!/bin/sh
+# Started by the greeter's KWin (kde-greeter), so it has WAYLAND_DISPLAY.
+
+# Mutter's screencast and remote desktop interfaces for gnome-remote-desktop, on top of KWin.
+kwin-mutter-bridge &
+for _ in $(seq 50); do
+  busctl --user status org.gnome.Mutter.RemoteDesktop >/dev/null 2>&1 && break
+  sleep 0.1
+done
+
+# gnome-remote-desktop's handover daemon takes over the RDP connection. It's the systemd user
+# service grd ships, restarted if it crashes.
+systemctl --user start gnome-remote-desktop-handover.service
+
+# Stands in for gnome-session's Logout, which grd calls to end the greeter when the RDP session
+# ends.
+remote-dm session-manager &
+
+# Any greetd greeter works, remote-dm speaks greetd's IPC (GREETD_SOCK). Restarted if it crashes,
+# so the remote user isn't left with an empty screen. After a login it exits successfully and
+# stays gone.
+until regreet; do sleep 1; done

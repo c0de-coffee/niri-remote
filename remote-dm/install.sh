@@ -36,6 +36,13 @@ unit=$(mktemp)
 sed "s|@BINDIR@|$PREFIX/bin|" data/remote-dm.service.in > "$unit"
 install -Dm644 "$unit" "$D$PREFIX/lib/systemd/system/remote-dm.service"
 rm -f "$unit"
+# KDE: greeter session, and headless KWin for Plasma in remote-dm sessions.
+install -Dm755 -t "$D$PREFIX/lib/remote-dm" \
+  data/kde/kde-greeter data/kde/kde-greeter-apps data/kde/plasma-kwin-wrapper
+dropin=$(mktemp)
+sed "s|@LIBDIR@|$PREFIX/lib/remote-dm|" data/kde/plasma-kwin_wayland.service.d/remote-dm.conf.in > "$dropin"
+install -Dm644 "$dropin" "$D$PREFIX/lib/systemd/user/plasma-kwin_wayland.service.d/remote-dm.conf"
+rm -f "$dropin"
 install -Dm644 data/sysusers.d/remote-dm.conf "$D$PREFIX/lib/sysusers.d/remote-dm.conf"
 install -Dm644 data/tmpfiles.d/remote-dm.conf "$D$PREFIX/lib/tmpfiles.d/remote-dm.conf"
 install -Dm644 data/org.gnome.DisplayManager.conf \
@@ -59,7 +66,8 @@ cat <<'NEXT'
 
 remote-dm installed. To use it:
   1. Install a greetd greeter (the default greeter.kdl starts regreet) and
-     gnome-remote-desktop.
+     gnome-remote-desktop. For KDE Plasma instead of niri, also kwin-mutter-bridge and the
+     KDE commands in /etc/remote-dm/config.toml.
   2. Set up gnome-remote-desktop's system daemon (remote login), e.g.:
        grdctl --system rdp set-tls-cert /path/to/cert.crt
        grdctl --system rdp set-tls-key /path/to/cert.key

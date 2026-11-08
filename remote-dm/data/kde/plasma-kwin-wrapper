@@ -1,0 +1,14 @@
+#!/bin/sh
+# Starts Plasma's KWin (ExecStart of plasma-kwin_wayland.service, through remote-dm's drop-in).
+#
+# remote-dm sessions have no seat, so no monitor or input devices: there KWin runs headless
+# (--virtual) and starts kwin-mutter-bridge, which gnome-remote-desktop needs. Sessions with a
+# seat get Plasma's usual command.
+seat=seat0
+if [ -n "${XDG_SESSION_ID:-}" ]; then
+  seat=$(loginctl show-session "$XDG_SESSION_ID" -p Seat --value 2>/dev/null) || seat=seat0
+fi
+if [ -z "$seat" ]; then
+  exec kwin_wayland_wrapper --xwayland --virtual kwin-mutter-bridge
+fi
+exec kwin_wayland_wrapper --xwayland

@@ -1,0 +1,5 @@
+# From remote-dm: in remote-dm sessions, run KWin headless with kwin-mutter-bridge. Other
+# sessions are unchanged (see @LIBDIR@/plasma-kwin-wrapper).
+[Service]
+ExecStart=
+ExecStart=@LIBDIR@/plasma-kwin-wrapper
