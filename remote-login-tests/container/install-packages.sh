@@ -53,5 +53,6 @@ for pkg in "${pkgs[@]}"; do
   $R "mkdir -p /root/pkgs && cat > /root/pkgs/$name" < "$pkg"
   remote+=("/root/pkgs/$name")
 done
-$R "pacman -U --noconfirm ${remote[*]} | tail -3 && systemctl try-restart remote-dm"
+$R "set -o pipefail; pacman -U --noconfirm ${remote[*]} | tail -3 && systemctl try-restart remote-dm" \
+  || { echo "[install-packages] pacman failed" >&2; exit 1; }
 echo "[install-packages] installed: ${pkgs[*]##*/}"
