@@ -95,7 +95,7 @@ It has two parts:
 
 | Directory | |
 |---|---|
-| [`remote-dm/`](remote-dm/) | the remote login display manager |
+| [`remote-dm/`](remote-dm/) | the remote login display manager (also works with [KDE Plasma](remote-dm/README.md#kde-plasma) via [kwin-mutter-bridge](https://github.com/c0de-coffee/kwin-mutter-bridge)) |
 | [`packaging/`](packaging/) | Arch PKGBUILDs |
 | [`patches/`](patches/) | patches for gnome-remote-desktop |
 | [`remote-login-tests/`](remote-login-tests/) | test scripts, including a systemd-nspawn test container |

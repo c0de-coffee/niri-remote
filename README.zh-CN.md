@@ -63,7 +63,7 @@
 
 | 目录 | 内容 |
 |---|---|
-| [`remote-dm/`](remote-dm/) | 远程登录显示管理器 |
+| [`remote-dm/`](remote-dm/) | 远程登录显示管理器（也支持 [KDE Plasma](remote-dm/README.zh-CN.md#kde-plasma)，配合 [kwin-mutter-bridge](https://github.com/c0de-coffee/kwin-mutter-bridge)） |
 | [`packaging/`](packaging/) | Arch 软件包的 PKGBUILD |
 | [`patches/`](patches/) | 给 gnome-remote-desktop 的补丁 |
 | [`remote-login-tests/`](remote-login-tests/) | 测试脚本（含 systemd-nspawn 测试容器） |

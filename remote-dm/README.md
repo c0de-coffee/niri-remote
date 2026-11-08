@@ -20,6 +20,7 @@ of GDM that grd needs, without GDM:
 - Sessions are seatless, remote logind sessions. By default both the greeter and the user session
   run headless niri. The compositor needs to implement mutter's `RemoteDesktop`/`ScreenCast`
   interfaces, including virtual outputs (`RecordVirtual`), like [my fork of niri](../README.md).
+  KDE Plasma works too, see [KDE Plasma](#kde-plasma).
 
 ## How a connection goes
 
@@ -218,6 +219,30 @@ sudo grdctl --system rdp set-auth-methods credentials,kerberos
 ```
 
 To always show the greeter, set `preauthenticated-pam-service = ""` in `[session]`.
+
+## KDE Plasma
+
+remote-dm also works with KDE Plasma, using
+[kwin-mutter-bridge](https://github.com/c0de-coffee/kwin-mutter-bridge): it serves mutter's
+`ScreenCast`/`RemoteDesktop` interfaces on top of KWin, so KWin itself isn't modified. You need:
+
+- `plasma-meta` (or at least `plasma-desktop`), `greetd-regreet` and kwin-mutter-bridge installed
+  as `/usr/local/bin/kwin-mutter-bridge`
+- gnome-remote-desktop with patches 0003–0005 from [`patches/`](../patches/gnome-remote-desktop/)
+  (`packaging/gnome-remote-desktop/build.sh` applies them all)
+- the KDE commands in `/etc/remote-dm/config.toml`:
+
+```toml
+[greeter]
+command = "exec /usr/lib/remote-dm/kde-greeter"
+
+[session]
+command = "systemctl --user restart gnome-remote-desktop-handover.service; exec startplasma-wayland"
+```
+
+The greeter is headless KWin with regreet. In remote-dm's sessions (they have no seat), a drop-in
+for `plasma-kwin_wayland.service` starts Plasma's KWin headless with the bridge; local Plasma
+logins are unchanged. Not tested yet with KDE: several monitors, the lock screen, sound.
 
 ## Configuration
 
