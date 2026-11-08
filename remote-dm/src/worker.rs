@@ -21,7 +21,9 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicI32, Ordering};
 
 use anyhow::{bail, Context as _};
+use nix::fcntl::OFlag;
 use nix::sys::signal::{self, SigHandler, Signal};
+use nix::sys::stat::Mode;
 use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{self, ForkResult, Pid, User};
 use pam_sys::{PamFlag, PamItemType};
@@ -291,6 +293,14 @@ fn run() -> anyhow::Result<i32> {
         ForkResult::Child => {
             // Drop privileges and run the session command.
             let result = (|| -> nix::Result<()> {
+                // Our stdin and stdout carry the worker protocol: keep the session off them.
+                // Its output goes to stderr (the journal) instead.
+                let null = nix::fcntl::open("/dev/null", OFlag::O_RDONLY, Mode::empty())?;
+                unistd::dup2(null, libc::STDIN_FILENO)?;
+                unistd::dup2(libc::STDERR_FILENO, libc::STDOUT_FILENO)?;
+                if null > libc::STDERR_FILENO {
+                    let _ = unistd::close(null);
+                }
                 unistd::initgroups(&user_name, user.gid)?;
                 unistd::setgid(user.gid)?;
                 unistd::setuid(user.uid)?;
