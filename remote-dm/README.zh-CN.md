@@ -10,7 +10,7 @@
 gnome-remote-desktop（下面简称 grd）的远程登录模式本来要配合 GDM 使用。remote-dm 只做了其中 grd 需要的那部分，不需要装 GDM：
 
 - 对 **grd 的系统服务**，它实现 GDM 的远程显示接口（`org.gnome.DisplayManager` 的 `RemoteDisplayFactory`、`RemoteDisplay`），所以 grd 不用修改。
-- 对**登录界面**，它使用 **greetd 的协议**，所以任何 greetd 登录界面都能用（默认是 regreet，也支持 [Noctalia Greeter](https://github.com/noctalia-dev/noctalia-greeter)）。
+- 对**登录界面**，它使用 **greetd 的协议**，所以任何 greetd 登录界面都能用（默认是 regreet，也支持 [Noctalia Greeter](https://github.com/noctalia-dev/noctalia-greeter)）。它也会 KDE 登录管理器（plasma-login-manager）的协议，所以 KDE 原版登录界面也能用。
 - 会话都是没有座位（seat）的远程 logind 会话。登录界面和用户会话默认都跑无头 niri。合成器必须实现 mutter 的 `RemoteDesktop`、`ScreenCast` 接口，包括虚拟屏幕（`RecordVirtual`），比如[我 fork 的这个 niri](../README.zh-CN.md)。KDE Plasma 也能用，见 [KDE Plasma](#kde-plasma)。
 
 ## 一次连接的过程
@@ -183,7 +183,7 @@ sudo grdctl --system rdp set-auth-methods credentials,kerberos
 
 remote-dm 也能配 KDE Plasma 用，靠的是 [kwin-mutter-bridge](https://github.com/c0de-coffee/kwin-mutter-bridge)：它在 KWin 上提供 mutter 的 `ScreenCast`、`RemoteDesktop` 接口，KWin 本身不用改。需要：
 
-- 装好 `plasma-meta`（至少 `plasma-desktop`）、`greetd-regreet`，kwin-mutter-bridge 装到 `/usr/local/bin/kwin-mutter-bridge`
+- 装好 `plasma-meta`（至少 `plasma-desktop`）、`plasma-login-manager`（或者 `greetd-regreet`），kwin-mutter-bridge 装到 `/usr/local/bin/kwin-mutter-bridge`
 - gnome-remote-desktop 打上 [`patches/`](../patches/gnome-remote-desktop/) 里的 0003–0005（`packaging/gnome-remote-desktop/build.sh` 会全部打上）
 - `/etc/remote-dm/config.toml` 改成 KDE 的命令：
 
@@ -195,7 +195,7 @@ command = "exec /usr/lib/remote-dm/kde-greeter"
 command = "systemctl --user restart gnome-remote-desktop-handover.service; exec startplasma-wayland"
 ```
 
-登录界面是无头 KWin 加 regreet。在 remote-dm 的会话里（没有座位），`plasma-kwin_wayland.service` 的 drop-in 让 Plasma 的 KWin 带着转接程序以无头方式启动；本机登录 Plasma 不受影响。KDE 下还没测过：多显示器、锁屏、声音。
+登录界面是无头 KWin 加 KDE 原版登录界面（`/usr/lib/plasma-login-greeter`，通过 `SDDM_SOCKET` 和 remote-dm 通信）；没装 plasma-login-manager 就用 regreet，环境变量 `REMOTE_DM_GREETER` 可以指定别的。本机用哪个登录管理器都行（plasmalogin、greetd 都可以，GDM 除外）。KDE 登录界面没法回答"是否注销本机会话"：账户已在本机登录时，它会提示"再登录一次会注销本机会话"，一分钟内同一账户再登录一次就算确认。登录界面上的会话选择不起作用，远程登录总是启动配置里的命令。界面上的重启、关机按钮远程也能看到，但系统默认要求管理员密码，远程登录界面输不了，点了只会断开这次连接。在 remote-dm 的会话里（没有座位），`plasma-kwin_wayland.service` 的 drop-in 让 Plasma 的 KWin 带着转接程序以无头方式启动；本机登录 Plasma 不受影响。KDE 下还没测过：多显示器、锁屏、声音。
 
 ## 配置
 

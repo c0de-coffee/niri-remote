@@ -95,8 +95,28 @@ impl Drop for Listener {
     }
 }
 
+/// What a greeter socket speaks.
+#[derive(Debug, Clone, Copy)]
+pub enum Protocol {
+    /// greetd's (`GREETD_SOCK`).
+    Greetd,
+    /// plasma-login-manager's (`SDDM_SOCKET`), see `plasma_ipc`.
+    Plasma,
+}
+
+impl Protocol {
+    /// The environment variable that tells greeters where the socket is.
+    pub fn env_var(self) -> &'static str {
+        match self {
+            Protocol::Greetd => "GREETD_SOCK",
+            Protocol::Plasma => "SDDM_SOCKET",
+        }
+    }
+}
+
 /// Creates the socket for the greeter of `remote`, usable only by `uid`.
 pub fn listen(
+    protocol: Protocol,
     remote: u64,
     uid: u32,
     requests: mpsc::UnboundedSender<GreeterRequest>,
@@ -104,7 +124,11 @@ pub fn listen(
     std::fs::create_dir_all(SOCKET_DIR)?;
     std::fs::set_permissions(SOCKET_DIR, std::fs::Permissions::from_mode(0o755))?;
 
-    let path = PathBuf::from(format!("{SOCKET_DIR}/greeter-{remote}.sock"));
+    let name = match protocol {
+        Protocol::Greetd => "greeter",
+        Protocol::Plasma => "plasma-greeter",
+    };
+    let path = PathBuf::from(format!("{SOCKET_DIR}/{name}-{remote}.sock"));
     let _ = std::fs::remove_file(&path);
     let listener = UnixListener::bind(&path).with_context(|| format!("error binding {path:?}"))?;
     std::os::unix::fs::chown(&path, Some(uid), None)?;
@@ -135,7 +159,11 @@ pub fn listen(
 
             let requests = requests.clone();
             tokio::spawn(async move {
-                if let Err(err) = serve(stream, remote, requests).await {
+                let result = match protocol {
+                    Protocol::Greetd => serve(stream, remote, requests).await,
+                    Protocol::Plasma => crate::plasma_ipc::serve(stream, remote, requests).await,
+                };
+                if let Err(err) = result {
                     tracing::debug!(remote, "greeter connection ended: {err:#}");
                 }
             });

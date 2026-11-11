@@ -16,7 +16,8 @@ of GDM that grd needs, without GDM:
   unmodified.
 - Towards **greeters** it speaks **greetd's protocol**, so any greetd greeter can be the login
   screen (regreet by default; [Noctalia Greeter](https://github.com/noctalia-dev/noctalia-greeter)
-  is supported too).
+  is supported too). It also speaks KDE's login manager's (plasma-login-manager's) protocol, so
+  KDE's own login screen works too.
 - Sessions are seatless, remote logind sessions. By default both the greeter and the user session
   run headless niri. The compositor needs to implement mutter's `RemoteDesktop`/`ScreenCast`
   interfaces, including virtual outputs (`RecordVirtual`), like [my fork of niri](../README.md).
@@ -226,7 +227,8 @@ remote-dm also works with KDE Plasma, using
 [kwin-mutter-bridge](https://github.com/c0de-coffee/kwin-mutter-bridge): it serves mutter's
 `ScreenCast`/`RemoteDesktop` interfaces on top of KWin, so KWin itself isn't modified. You need:
 
-- `plasma-meta` (or at least `plasma-desktop`), `greetd-regreet` and kwin-mutter-bridge installed
+- `plasma-meta` (or at least `plasma-desktop`), `plasma-login-manager` (or `greetd-regreet`) and
+  kwin-mutter-bridge installed
   as `/usr/local/bin/kwin-mutter-bridge`
 - gnome-remote-desktop with patches 0003–0005 from [`patches/`](../patches/gnome-remote-desktop/)
   (`packaging/gnome-remote-desktop/build.sh` applies them all)
@@ -240,7 +242,16 @@ command = "exec /usr/lib/remote-dm/kde-greeter"
 command = "systemctl --user restart gnome-remote-desktop-handover.service; exec startplasma-wayland"
 ```
 
-The greeter is headless KWin with regreet. In remote-dm's sessions (they have no seat), a drop-in
+The greeter is headless KWin with KDE's own login screen (`/usr/lib/plasma-login-greeter`, talking
+to remote-dm on `SDDM_SOCKET`), or regreet if plasma-login-manager isn't installed;
+`REMOTE_DM_GREETER` picks another command. The local login manager can be anything but GDM
+(plasmalogin, greetd). KDE's login screen can't answer "log out the local session?": when the user
+is logged in locally, it says that logging in again logs that session out, and logging in as the
+same user again within a minute confirms. Its session choice is ignored, remote logins always run
+the configured command. Its restart and shut down buttons show remotely too, but by default they
+need an admin password, which the remote login screen can't ask for: they just end the connection.
+
+In remote-dm's sessions (they have no seat), a drop-in
 for `plasma-kwin_wayland.service` starts Plasma's KWin headless with the bridge; local Plasma
 logins are unchanged. Not tested yet with KDE: several monitors, the lock screen, sound.
 

@@ -31,6 +31,7 @@ mod logind;
 // Copied from greetd as is, including a few methods we don't use.
 #[allow(dead_code)]
 mod pam;
+mod plasma_ipc;
 mod scrambler;
 mod session;
 mod session_manager;
@@ -44,7 +45,7 @@ use tracing_subscriber::EnvFilter;
 use zbus::zvariant::OwnedObjectPath;
 
 use crate::display::{Displays, Factory, RemoteDisplayRequest, BUS_NAME, DISPLAYS_PATH, FACTORY_PATH};
-use crate::greeter_ipc::{ErrorType, GreeterRequest, Request, Response};
+use crate::greeter_ipc::{ErrorType, GreeterRequest, Protocol, Request, Response};
 use crate::session::{Session, SessionKey};
 use crate::worker::{WorkerEvent, WorkerInput, WorkerRequest};
 
@@ -137,6 +138,15 @@ fn conflict_question(username: &str) -> String {
     }
 }
 
+/// For greeters that can't answer `conflict_question` (KDE's), which retry the login instead.
+fn conflict_retry_message(username: &str) -> String {
+    if chinese() {
+        format!("{username} 已在本机登录。再登录一次会注销本机会话（未保存的会丢失）")
+    } else {
+        format!("{username} is logged in here. Log in again to log that out (unsaved work is lost)")
+    }
+}
+
 fn is_yes(answer: Option<&str>) -> bool {
     matches!(
         answer.map(|a| a.trim().to_lowercase()).as_deref(),
@@ -169,7 +179,8 @@ struct Remote {
     greeter_display: Option<OwnedObjectPath>,
     /// The greeter's logind session, once it's open.
     greeter_session_id: Option<String>,
-    greeter_socket: Option<greeter_ipc::Listener>,
+    /// One per protocol, the greeter uses whichever it speaks.
+    greeter_sockets: Vec<greeter_ipc::Listener>,
     login: Option<Login>,
     user_display: Option<OwnedObjectPath>,
     /// The client is on its way from the greeter to a user session; the greeter ends on its own.
@@ -331,22 +342,22 @@ impl State {
         };
 
         let remote_key = self.next_key();
-        let socket = if self.session_bus {
-            None
-        } else {
-            match greeter_ipc::listen(remote_key, greeter_uid, self.greeter_requests.clone()) {
-                Ok(socket) => Some(socket),
-                Err(err) => {
-                    tracing::warn!("error creating greeter socket: {err:?}");
-                    let _ = self.displays.remove(&path).await;
-                    return;
+        let mut env = vec!["XDG_SESSION_DESKTOP=niri".to_owned()];
+        let mut sockets = Vec::new();
+        if !self.session_bus {
+            for protocol in [Protocol::Greetd, Protocol::Plasma] {
+                match greeter_ipc::listen(protocol, remote_key, greeter_uid, self.greeter_requests.clone()) {
+                    Ok(socket) => {
+                        env.push(format!("{}={}", protocol.env_var(), socket.path().display()));
+                        sockets.push(socket);
+                    }
+                    Err(err) => {
+                        tracing::warn!("error creating greeter socket: {err:?}");
+                        let _ = self.displays.remove(&path).await;
+                        return;
+                    }
                 }
             }
-        };
-
-        let mut env = vec!["XDG_SESSION_DESKTOP=niri".to_owned()];
-        if let Some(socket) = &socket {
-            env.push(format!("GREETD_SOCK={}", socket.path().display()));
         }
         let greeter_request = WorkerRequest {
             service: self.config.greeter.pam_service.clone(),
@@ -388,7 +399,7 @@ impl State {
                 greeter: Some(greeter),
                 greeter_display: Some(path),
                 greeter_session_id: None,
-                greeter_socket: socket,
+                greeter_sockets: sockets,
                 login: None,
                 user_display: None,
                 handed_over: false,
@@ -857,7 +868,7 @@ impl State {
                 greeter: None,
                 greeter_display: None,
                 greeter_session_id: None,
-                greeter_socket: None,
+                greeter_sockets: Vec::new(),
                 login: Some(Login {
                     username,
                     session,
@@ -878,7 +889,7 @@ impl State {
         };
 
         remote.greeter = None;
-        remote.greeter_socket = None;
+        remote.greeter_sockets.clear();
         if let Some(path) = remote.greeter_display.take() {
             let _ = self.displays.remove(&path).await;
         }

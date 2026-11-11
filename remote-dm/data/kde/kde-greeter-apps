@@ -16,7 +16,21 @@ systemctl --user start gnome-remote-desktop-handover.service
 # ends.
 remote-dm session-manager &
 
-# Any greetd greeter works, remote-dm speaks greetd's IPC (GREETD_SOCK). Restarted if it crashes,
-# so the remote user isn't left with an empty screen. After a login it exits successfully and
-# stays gone.
-until regreet; do sleep 1; done
+# The login screen: KDE's own (plasma-login-manager's, remote-dm speaks its protocol on
+# SDDM_SOCKET) if it's installed, otherwise regreet (or any greetd greeter, on GREETD_SOCK).
+# REMOTE_DM_GREETER picks another command. Restarted if it crashes, so the remote user isn't left
+# with an empty screen. regreet exits successfully after a login and stays gone; KDE's keeps
+# running until remote-dm ends the greeter session.
+greeter=${REMOTE_DM_GREETER:-}
+if [ -z "$greeter" ]; then
+  if [ -x /usr/lib/plasma-login-greeter ]; then
+    greeter=/usr/lib/plasma-login-greeter
+  else
+    greeter=regreet
+  fi
+fi
+if [ "$greeter" = /usr/lib/plasma-login-greeter ] && [ -x /usr/bin/plasma-login-wallpaper ]; then
+  # The greeter's windows are transparent, the wallpaper is its own program.
+  plasma-login-wallpaper &
+fi
+until $greeter; do sleep 1; done
