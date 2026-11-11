@@ -10,7 +10,7 @@ PORT=3393
 STATE=/var/lib/gnome-remote-desktop
 
 # remote-dm owns org.gnome.DisplayManager (GDM isn't installed here).
-install -D -m 644 /opt/niri/remote-dm/data/org.gnome.DisplayManager.conf \
+install -D -m 644 /opt/remote-dm/data/org.gnome.DisplayManager.conf \
   /etc/dbus-1/system.d/org.gnome.DisplayManager.conf
 busctl call org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus ReloadConfig
 

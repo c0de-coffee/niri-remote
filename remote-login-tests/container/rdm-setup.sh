@@ -1,9 +1,9 @@
 #!/bin/bash
 # Inside the niri-rl container, as root: install remote-dm from the host build (build it there
-# first: cargo build --release in ~/niri/remote-dm), plus the test bits. Re-runnable.
+# first: cargo build --release in ~/remote-dm), plus the test bits. Re-runnable.
 set -euo pipefail
 
-cd /opt/niri/remote-dm
+cd /opt/remote-dm
 ./install.sh --no-build
 systemctl enable --now remote-dm
 

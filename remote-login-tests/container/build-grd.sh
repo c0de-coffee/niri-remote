@@ -1,12 +1,12 @@
 #!/bin/bash
 # Inside the niri-rl container, as root: build and install gnome-remote-desktop with our patches
-# (/opt/niri/patches/gnome-remote-desktop/) on top of Arch's package.
+# (remote-dm's patches/gnome-remote-desktop/, at /opt/remote-dm) on top of Arch's package.
 #
 # The build itself is packaging/gnome-remote-desktop/build.sh, run as an unprivileged "builder"
 # user; root only installs the dependencies and the built package.
 set -euo pipefail
 
-PATCHES=/opt/niri/patches/gnome-remote-desktop
+PATCHES=/opt/remote-dm/patches/gnome-remote-desktop
 
 pacman -S --needed --noconfirm base-devel git pacman-contrib \
   asciidoc ffnvcodec-headers glib2-devel meson vulkan-headers \
@@ -16,10 +16,10 @@ pacman -S --needed --noconfirm base-devel git pacman-contrib \
 
 id builder >/dev/null 2>&1 || useradd --create-home builder
 
-# /opt/niri is read-only, so give the builder its own copy of the script and the patches.
+# /opt/remote-dm is read-only, so give the builder its own copy of the script and the patches.
 rm -rf ~builder/niri-grd
 mkdir -p ~builder/niri-grd/packaging ~builder/niri-grd/patches
-cp -r /opt/niri/packaging/gnome-remote-desktop ~builder/niri-grd/packaging/
+cp -r /opt/remote-dm/packaging/gnome-remote-desktop ~builder/niri-grd/packaging/
 cp -r "$PATCHES" ~builder/niri-grd/patches/
 chown -R builder: ~builder/niri-grd
 

@@ -40,7 +40,8 @@ struct VirtualOutput {
 /// What a screencast consumer told us about the output it wants, in its stream's tag.
 ///
 /// gnome-remote-desktop sends the scale for each RDP client monitor; with our patch
-/// (`patches/gnome-remote-desktop/0002-*`) also its place in the client's monitor layout.
+/// (`patches/gnome-remote-desktop/0002-*` in c0de-coffee/remote-dm) also its place in the
+/// client's monitor layout.
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct ConsumerTag {
     pub scale: Option<f64>,

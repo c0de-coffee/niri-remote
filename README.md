@@ -36,9 +36,11 @@ It has two parts:
      size; one per monitor when the client uses several, at that monitor's scale.
    - `niri --headless`: renders on the GPU without any physical outputs.
    - Used locally, it behaves like regular niri.
-2. **[remote-dm](remote-dm/README.md)**: a display manager just for remote logins. It stands in
+2. **[remote-dm](https://github.com/c0de-coffee/remote-dm)**: a display manager just for remote logins. It stands in
    for GDM towards gnome-remote-desktop and for greetd towards greeters. How a connection goes,
-   client setup and troubleshooting are in its README.
+   client setup and troubleshooting are in its README. It used to live in this repository
+   (`remote-dm/`) and has its own repository since November 2026, since it works with KDE Plasma
+   too; the gnome-remote-desktop patches moved there with it.
 
 ## Quick start (Arch Linux)
 
@@ -50,18 +52,19 @@ It has two parts:
    ```
 
    `niri-remote-desktop` replaces the `niri` package. To build them yourself, use the PKGBUILDs in
-   [`packaging/`](packaging/): `niri-remote-desktop` and `remote-dm` build the release,
-   `*-git` the latest commit of the branch.
+   [`packaging/`](packaging/) for niri and in [remote-dm's repository](https://github.com/c0de-coffee/remote-dm/tree/main/packaging)
+   for remote-dm: `niri-remote-desktop` and `remote-dm` build the release, `*-git` the latest
+   commit of the branch.
 
 2. **Set it up**: set up gnome-remote-desktop and enable remote-dm as in
-   [remote-dm's README](remote-dm/README.md#installing).
+   [remote-dm's README](https://github.com/c0de-coffee/remote-dm#installing).
 
    If you manage your desktop with Nyxuri, my Nyxuri fork
    [c0de-coffee/Nyxuri-remote](https://github.com/c0de-coffee/Nyxuri-remote) can do it for you
    (the original Nyxuri can't): `nyxuri on remote-login` does the setup above and adds a settings
    panel to Noctalia.
 
-3. **Connect**: see [Connecting](remote-dm/README.md#connecting). Windows' Remote Desktop
+3. **Connect**: see [Connecting](https://github.com/c0de-coffee/remote-dm#connecting). Windows' Remote Desktop
    Connection needs one extra line in its `.rdp` file, or it can't get through.
 
 ## Known issues and limitations
@@ -79,15 +82,15 @@ It has two parts:
   like "focus monitor left/right" may go the opposite way from what you see, and the login screen
   may open on a monitor other than the primary one. Moving the pointer between monitors isn't
   affected. The optional gnome-remote-desktop patch `0002` in
-  [`patches/gnome-remote-desktop/`](patches/gnome-remote-desktop/) fixes this: niri then arranges
+  [remote-dm's `patches/gnome-remote-desktop/`](https://github.com/c0de-coffee/remote-dm/tree/main/patches/gnome-remote-desktop) fixes this: niri then arranges
   the monitors as in the client's display settings and opens windows on its primary monitor.
 - **Clipboard with non-ASCII text**: in text copied on the client, every character outside ASCII
   (Chinese, accented letters, emoji, …) shows up remotely as escapes like
   `\u6d4b\u8bd5`. That's a bug in gnome-remote-desktop 51 itself (showing up with FreeRDP 3.32 or
   later); it happens with GNOME too and has nothing to do with this fork. Remote login works
   without fixing it. To fix it, rebuild gnome-remote-desktop with the patches in
-  [`patches/gnome-remote-desktop/`](patches/gnome-remote-desktop/):
-  [`packaging/gnome-remote-desktop/build.sh`](packaging/gnome-remote-desktop/build.sh) does it on
+  [remote-dm's `patches/gnome-remote-desktop/`](https://github.com/c0de-coffee/remote-dm/tree/main/patches/gnome-remote-desktop):
+  [`packaging/gnome-remote-desktop/build.sh`](https://github.com/c0de-coffee/remote-dm/blob/main/packaging/gnome-remote-desktop/build.sh) there does it on
   Arch (it applies both patches).
 - Packages are for Arch Linux only.
 
@@ -95,14 +98,12 @@ It has two parts:
 
 | Directory | |
 |---|---|
-| [`remote-dm/`](remote-dm/) | the remote login display manager (also works with [KDE Plasma](remote-dm/README.md#kde-plasma) via [kwin-mutter-bridge](https://github.com/c0de-coffee/kwin-mutter-bridge)) |
-| [`packaging/`](packaging/) | Arch PKGBUILDs |
-| [`patches/`](patches/) | patches for gnome-remote-desktop |
-| [`remote-login-tests/`](remote-login-tests/) | test scripts, including a systemd-nspawn test container |
+| [`packaging/`](packaging/) | Arch PKGBUILDs for niri |
+| [`remote-login-tests/`](remote-login-tests/) | test scripts, including a systemd-nspawn test container (it also uses remote-dm's repository, checked out at `~/remote-dm`) |
 
 ## License and credits
 
-GPL-3.0-or-later, like niri; remote-dm is GPL-3.0-only (it contains code from greetd).
+GPL-3.0-or-later, like niri.
 
 Thanks to Ivan Molodetskikh (YaLTeR) and everyone who works on niri, which all of this builds on,
 and to the projects it relies on: [Smithay](https://github.com/Smithay/smithay) (including its

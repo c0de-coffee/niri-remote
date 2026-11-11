@@ -1,4 +1,0 @@
-#!/bin/sh
-# remote-dm greeter session on KDE: headless KWin running kde-greeter-apps.
-# In /etc/remote-dm/config.toml: [greeter] command = "exec /usr/lib/remote-dm/kde-greeter"
-exec kwin_wayland --virtual --no-lockscreen --no-global-shortcuts "$(dirname "$0")/kde-greeter-apps"
