@@ -1,9 +1,10 @@
 #!/bin/bash
 # Inside the niri-rl container, as root: install kwin-mutter-bridge and switch remote-dm to KDE
 # (KDE=0 switches back to the niri config). remote-dm's KDE files come with its package
-# (install-packages.sh remote-dm). The bridge is its own repo (~/kwin-mutter-bridge), which the
-# container can't see, so copy the binary in first, from the host:
-#   ~/.local/share/niri-rl/ssh 'cat > /tmp/kwin-mutter-bridge' < ~/kwin-mutter-bridge/target/release/kwin-mutter-bridge
+# (install-packages.sh remote-dm). The bridge is its own repo (kwin-mutter-bridge, checked out next
+# to this one), which the container can't see, so copy the binary in first, from the host, in this
+# repository's top directory:
+#   ~/.local/share/niri-rl/ssh 'cat > /tmp/kwin-mutter-bridge' < ../kwin-mutter-bridge/target/release/kwin-mutter-bridge
 set -euo pipefail
 BRIDGE=${BRIDGE:-/tmp/kwin-mutter-bridge}
 if [ "${KDE:-1}" = 0 ]; then

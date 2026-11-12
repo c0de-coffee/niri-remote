@@ -8,7 +8,8 @@
 # - installs a small Arch into /var/lib/machines/niri-rl, reusing the host package cache
 # - container: own system bus and logind (so it can own org.gnome.DisplayManager without
 #   touching the host's GDM), host network shared, GPU render node passed in (not the display
-#   card), ~/niri bind-mounted read-only at /opt/niri, ~/remote-dm at /opt/remote-dm
+#   card), this niri checkout bind-mounted read-only at /opt/niri, and the remote-dm checkout
+#   next to it at /opt/remote-dm (override with NIRI_SRC / REMOTE_DM_SRC)
 # - user namespace (PrivateUsers=pick): root in the container is unprivileged on the host
 # - sshd in the container on 127.0.0.1:2222 only, key login only, with a key generated for this
 #   (~/.local/share/niri-rl/id_ed25519 of the invoking user)
@@ -28,8 +29,8 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 USER_NAME=${SUDO_USER:?run with sudo from your normal user}
 USER_HOME=$(getent passwd "$USER_NAME" | cut -d: -f6)
-NIRI_SRC=$USER_HOME/niri
-REMOTE_DM_SRC=$USER_HOME/remote-dm
+NIRI_SRC=${NIRI_SRC:-$(realpath "$(dirname "$0")/../..")}
+REMOTE_DM_SRC=${REMOTE_DM_SRC:-$(dirname "$NIRI_SRC")/remote-dm}
 KEY_DIR=$USER_HOME/.local/share/niri-rl
 
 PACKAGES=(

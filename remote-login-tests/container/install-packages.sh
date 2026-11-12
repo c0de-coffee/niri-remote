@@ -1,8 +1,8 @@
 #!/bin/bash
 # On the host: build niri-remote-desktop-git (from this repository) and remote-dm-git (from
-# $REMOTE_DM_REPO, default ~/remote-dm) from their current working trees (uncommitted changes
-# included, via throwaway clones with one temporary commit) and install them in the container with
-# pacman -U.
+# $REMOTE_DM_REPO, default: the remote-dm checkout next to this repository) from their current
+# working trees (uncommitted changes included, via throwaway clones with one temporary commit) and
+# install them in the container with pacman -U.
 #
 # usage: install-packages.sh [niri|remote-dm|all]   (default all; niri takes a few minutes)
 #
@@ -12,7 +12,7 @@ set -euo pipefail
 
 WHAT=${1:-all}
 REPO=$(git -C "$(dirname "$0")" rev-parse --show-toplevel)
-REMOTE_DM_REPO=${REMOTE_DM_REPO:-$HOME/remote-dm}
+REMOTE_DM_REPO=${REMOTE_DM_REPO:-$(dirname "$REPO")/remote-dm}
 OUT=${OUT:-${XDG_CACHE_HOME:-$HOME/.cache}/niri-pkgbuild/out}
 WORK=${XDG_CACHE_HOME:-$HOME/.cache}/niri-pkgbuild
 R=$HOME/.local/share/niri-rl/ssh

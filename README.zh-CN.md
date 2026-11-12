@@ -64,7 +64,7 @@
 | 目录 | 内容 |
 |---|---|
 | [`packaging/`](packaging/) | niri 的 Arch 软件包 PKGBUILD |
-| [`remote-login-tests/`](remote-login-tests/) | 测试脚本（含 systemd-nspawn 测试容器；也要用到放在 `~/remote-dm` 的 remote-dm 仓库） |
+| [`remote-login-tests/`](remote-login-tests/) | 测试脚本（含 systemd-nspawn 测试容器；也要用到和本仓库放在同一目录下的 remote-dm 仓库，即 `../remote-dm`） |
 
 ## 许可证和致谢
 

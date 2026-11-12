@@ -99,7 +99,7 @@ It has two parts:
 | Directory | |
 |---|---|
 | [`packaging/`](packaging/) | Arch PKGBUILDs for niri |
-| [`remote-login-tests/`](remote-login-tests/) | test scripts, including a systemd-nspawn test container (it also uses remote-dm's repository, checked out at `~/remote-dm`) |
+| [`remote-login-tests/`](remote-login-tests/) | test scripts, including a systemd-nspawn test container (it also uses remote-dm's repository, checked out next to this one, as `../remote-dm`) |
 
 ## License and credits
 
